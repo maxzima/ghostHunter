@@ -1,24 +1,23 @@
 /**
-* ghostHunter - 0.6.0
+ * ghostHunter - 0.6.1
  * Copyright (C) 2014 Jamal Neufeld (jamal@i11u.me)
  * MIT Licensed
  * @license
-*/
+ */
 (function( $ ) {
-
 	/* Include the Lunr library */
-	var lunr=require('./lunr.min.js');
+	var lunr=require('./lunr.js');
 
-	/* LEVENSHTEIN */
+	/* Include the Levenshtein library */
+	var Levenshtein=require('./levenshtein.js');
 
 	//This is the main plugin definition
 	$.fn.ghostHunter 	= function( options ) {
 
 		//Here we use jQuery's extend to set default values if they weren't set by the user
-		var opts 		= $.extend( {}, $.fn.ghostHunter.defaults, options );
-		if( opts.results )
-		{
-			pluginMethods.init( this , opts );
+		var opts 		= $.extend({}, $.fn.ghostHunter.defaults, options);
+		if(opts.results) {
+			pluginMethods.init(this , opts);
 			return pluginMethods;
 		}
 	};
@@ -40,12 +39,14 @@
 		item_preprocessor	: false,
 		indexing_start		: false,
 		indexing_end		: false,
-		includebodysearch	: false
+		includebodysearch	: false,
+		includetagssearch	: false
 	};
+
 	var prettyDate = function(date) {
 		var d = new Date(date);
 		var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-			return d.getDate() + ' ' + monthNames[d.getMonth()] + ' ' + d.getFullYear();
+		return d.getDate() + ' ' + monthNames[d.getMonth()] + ' ' + d.getFullYear();
 	};
 
 	var getSubpathKey = function(str) {
@@ -58,7 +59,7 @@
 	// updates is complete, just in case a browser freaks over
 	// duplicate IDs in the DOM.
 	var settleIDs = function() {
-		$('.gh-search-item').each(function(){
+		$('.gh-search-item').each(function() {
 			var oldAttr = this.getAttribute('id');
 			var newAttr = oldAttr.replace(/^new-/, "");
 			this.setAttribute('id', newAttr);
@@ -68,7 +69,7 @@
 	var updateSearchList = function(listItems, apiData, steps) {
 		for (var i=0,ilen=steps.length;i<ilen;i++) {
 			var step = steps[i];
-			if (step[0] == "delete") {
+			if (step[0] === "delete") {
 				listItems.eq(step[1]-1).remove();
 			} else {
 				var lunrref = apiData[step[2]-1].ref;
@@ -90,35 +91,44 @@
 		settleIDs();
 	}
 
-	var grabAndIndex = function(){
+	var grabAndIndex = function() {
 		// console.log('ghostHunter: grabAndIndex');
 		this.blogData = {};
 		this.latestPost = 0;
-    var url = (ghost_root_url || "/ghost/api/v2") + "/content/posts/?key=" + ghosthunter_key + "&limit=all&include=tags";
+		var url = (ghost_root_url || "/ghost/api/v2") + "/content/posts/?key=" + ghosthunter_key + "&limit=all";
 		var params = {
 			limit: "all",
-			include: "tags",
 		};
-		if ( this.includebodysearch ){
-			params.formats=["plaintext"]
-      url += "&formats=plaintext"
-		} else {
-			params.formats=[""]
+
+		if (this.includetagssearch) {
+			params.include = 'tags';
+			url += "&include=tags";
 		}
+
+		if (this.includebodysearch) {
+			params.formats = ["plaintext"]
+			url += "&formats=plaintext"
+		} else {
+			params.formats = [""]
+		}
+
 		var me = this;
-    $.get(url).done(function(data){
+
+		$.get(url).done(function(data) {
 			var idxSrc = data.posts;
 			// console.log("ghostHunter: indexing all posts")
 			me.index = lunr(function () {
 				this.ref('id');
 				this.field('title');
 				this.field('description');
-				if (me.includebodysearch){
-				this.field('plaintext');
+				if (me.includetagssearch) {
+					this.field('tag');
+				}
+				if (me.includebodysearch) {
+					this.field('plaintext');
 				}
 				this.field('pubDate');
-				this.field('tag');
-				idxSrc.forEach(function (arrayItem) {
+				idxSrc.forEach(function(arrayItem) {
 					// console.log("start indexing an item: " + arrayItem.id);
 					// Track the latest value of updated_at,  to stash in localStorage
 					var itemDate = new Date(arrayItem.updated_at).getTime();
@@ -126,26 +136,32 @@
 					if (itemDate > recordedDate) {
 						me.latestPost = arrayItem.updated_at;
 					}
+
 					var tag_arr = arrayItem.tags.map(function(v) {
 						return v.name; // `tag` object has an `name` property which is the value of tag. If you also want other info, check API and get that property
 					})
-					if(arrayItem.meta_description == null) { arrayItem.meta_description = '' };
+					if (arrayItem.meta_description == null) {
+						arrayItem.meta_description = ''
+					}
 					var category = tag_arr.join(", ");
-					if (category.length < 1){
+					if (category.length < 1) {
 						category = "undefined";
 					}
+
 					var parsedData 	= {
 						id 			: String(arrayItem.id),
 						title 		: String(arrayItem.title),
 						description	: String(arrayItem.custom_excerpt),
 						pubDate 	: String(arrayItem.published_at),
-						tag 		: category
 					}
-					if  ( me.includebodysearch ){
+					if  (me.includetagssearch) {
+						parsedData.tag = String(arrayItem.category);
+					}
+					if  (me.includebodysearch) {
 						parsedData.plaintext=String(arrayItem.plaintext);
 					}
-					this.add(parsedData)
-					var localUrl = me.subpath + arrayItem.url
+					this.add(parsedData);
+					var localUrl = me.subpath + arrayItem.url;
 					me.blogData[arrayItem.id] = {
 						title: arrayItem.title,
 						description: arrayItem.custom_excerpt,
@@ -183,7 +199,6 @@
 			var that = this;
 			that.target = target;
 			Object.assign(this, opts);
-			console.log("ghostHunter: init");
 			if ( opts.onPageLoad ) {
 				function miam () {
 					that.loadAPI();
@@ -252,11 +267,11 @@
 				};
 
 				var url = (ghost_root_url || "/ghost/api/v2") + "/content/posts/?key=" +
-				ghosthunter_key + "&limit=all&fields=id" + "&filter=" +
-				"updated_at:>\'" + this.latestPost.replace(/\..*/, "").replace(/T/, " ") + "\'";
+					ghosthunter_key + "&limit=all&fields=id" + "&filter=" +
+					"updated_at:>\'" + this.latestPost.replace(/\..*/, "").replace(/T/, " ") + "\'";
 
 				var me = this;
-        $.get(url).done(function(data){
+				$.get(url).done(function(data){
 					if (data.posts.length > 0) {
 						grabAndIndex.call(me);
 					} else {
@@ -399,21 +414,20 @@
 				// Tidy up
 				if(this.onComplete) {
 					this.onComplete(resultsData);
-				};
+				}
 			}.bind(this), 100);
 		},
 
-		clear 			: function(){
+		clear 			: function() {
 			$(this.results).empty();
 			this.target.val("");
 		},
 
-		format 			: function (t, d) {
-			return t.replace(/{{([^{}]*)}}/g, function (a, b) {
+		format 			: function(t, d) {
+			return t.replace(/{{([^{}]*)}}/g, function(a, b) {
 				var r = d[b];
 				return typeof r === 'string' || typeof r === 'number' ? r : a;
 			});
 		}
 	}
-
 })( jQuery );
