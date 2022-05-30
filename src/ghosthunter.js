@@ -4,8 +4,7 @@
  * MIT Licensed
  * @license
  */
-(function( $ ) {
-
+(function($) {
 	/* LUNR */
 
 	/* LEVENSHTEIN */
@@ -40,6 +39,7 @@
 		includebodysearch	: false,
 		includetagssearch	: false
 	};
+
 	var prettyDate = function(date) {
 		var d = new Date(date);
 		var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -47,7 +47,7 @@
 	};
 
 	var getSubpathKey = function(str) {
-		return str.replace(/^\//, "").replace(/\//g, "-")
+		return str.replace(/^\//, "").replace(/\//g, "-");
 	};
 
 	var lastTimeoutID = null;
@@ -56,12 +56,13 @@
 	// updates is complete, just in case a browser freaks over
 	// duplicate IDs in the DOM.
 	var settleIDs = function() {
-		$('.gh-search-item').each(function(){
+		$('.gh-search-item').each(function() {
 			var oldAttr = this.getAttribute('id');
 			var newAttr = oldAttr.replace(/^new-/, "");
 			this.setAttribute('id', newAttr);
 		});
 	};
+
 	var updateSearchList = function(listItems, apiData, steps) {
 		for (var i = 0, ilen = steps.length; i < ilen; i++) {
 			var step = steps[i];
@@ -78,7 +79,7 @@
 					if (step[1] === 0) {
 						pos = null;
 					} else {
-						pos = (step[1]-1)
+						pos = (step[1]-1);
 					}
 					listItems.eq(pos).after(html);
 				}
@@ -103,14 +104,15 @@
 		}
 
 		if (this.includebodysearch) {
-			params.formats=["plaintext"];
+			params.formats = ["plaintext"];
 			url += "&formats=plaintext";
 		} else {
-			params.formats=[""];
+			params.formats = [""];
 		}
 
 		var me = this;
-		$.get(url).done(function (data) {
+
+		$.get(url).done(function(data) {
 			var idxSrc = data.posts;
 			// console.log("ghostHunter: indexing all posts")
 			me.index = lunr(function () {
@@ -124,7 +126,7 @@
 				if (me.includebodysearch) {
 					this.field('plaintext');
 				}
-				idxSrc.forEach(function (arrayItem) {
+				idxSrc.forEach(function(arrayItem) {
 					// console.log("start indexing an item: " + arrayItem.id);
 					// Track the latest value of updated_at,  to stash in localStorage
 					var itemDate = new Date(arrayItem.updated_at).getTime();
@@ -132,16 +134,18 @@
 					if (itemDate > recordedDate) {
 						me.latestPost = arrayItem.updated_at;
 					}
+
 					var tag_arr = arrayItem.tags.map(function(v) {
 						return v.name; // `tag` object has an `name` property which is the value of tag. If you also want other info, check API and get that property
 					})
-					if(arrayItem.meta_description == null) {
+					if (arrayItem.meta_description == null) {
 						arrayItem.meta_description = '';
 					}
 					var category = tag_arr.join(", ");
-					if (category.length < 1){
+					if (category.length < 1) {
 						category = "undefined";
 					}
+
 					var parsedData 	= {
 						id 			: String(arrayItem.id),
 						title 		: String(arrayItem.title),
@@ -155,7 +159,7 @@
 						parsedData.plaintext=String(arrayItem.plaintext);
 					}
 					this.add(parsedData);
-					var localUrl = me.subpath + arrayItem.url
+					var localUrl = me.subpath + arrayItem.url;
 					me.blogData[arrayItem.id] = {
 						title: arrayItem.title,
 						description: arrayItem.custom_excerpt,
@@ -199,9 +203,8 @@
 			var that = this;
 			that.target = target;
 			Object.assign(this, opts);
-			// console.log("ghostHunter: init");
 			if (opts.onPageLoad) {
-				function miam () {
+				function miam() {
 					that.loadAPI();
 				}
 				window.setTimeout(miam, 1);
@@ -234,9 +237,9 @@
 
 		},
 
-		loadAPI			: function(){
+		loadAPI			: function() {
 			// console.log('ghostHunter: loadAPI');
-			if(!this.isInit) {
+			if (!this.isInit) {
 				// console.log('ghostHunter: this.isInit is true');
 				if (this.indexing_start) {
 					this.indexing_start();
@@ -254,7 +257,7 @@
 						this.blogData = JSON.parse(this.blogData);
 						this.isInit = true;
 					}
-				} catch (e){
+				} catch (e) {
 					console.warn("ghostHunter: retrieve from localStorage failed: " + e);
 				}
 			}
@@ -267,7 +270,9 @@
 					fields: "id"
 				};
 
-				var url = (ghost_root_url || "/ghost/api/v2") + "/content/posts/?key=" + ghosthunter_key + "&limit=all&fields=id" + "&filter=" + "updated_at:>\'" + this.latestPost.replace(/\..*/, "").replace(/T/, " ") + "\'";
+				var url = (ghost_root_url || "/ghost/api/v2") + "/content/posts/?key=" +
+					ghosthunter_key + "&limit=all&fields=id" + "&filter=" +
+					"updated_at:>\'" + this.latestPost.replace(/\..*/, "").replace(/T/, " ") + "\'";
 
 				var me = this;
 				$.get(url).done(function(data) {
@@ -287,7 +292,7 @@
 		},
 
 
-		find 		 	: function(value){
+		find 		 	: function(value) {
 			clearTimeout(lastTimeoutID);
 			if (!value) {
 				value = "";
@@ -302,7 +307,7 @@
 					// Fetch a list of matches for each term.
 					var v = valueSplit[i];
 					if (!v) continue;
-					thingsFound.push(this.index.query(function (q) {
+					thingsFound.push(this.index.query(function(q) {
 						// For an explanation of lunr indexing options, see the lunr.js
 						// documentation at https://lunrjs.com/docs/lunr.Query.html#~Clause
 
@@ -344,7 +349,7 @@
 								otherRefs[thingsFound[j][k].ref] = true;
 							}
 							if (!otherRefs[ref]) {
-								searchResult = searchResult.slice(0, i).concat(searchResult.slice(i+1));
+								searchResult = searchResult.slice(0, i).concat(searchResult.slice(i + 1));
 								break;
 							}
 						}
@@ -392,9 +397,6 @@
 				var currentRefs = listItems.map(function() {
 					return this.id.slice(3);
 				}).get();
-
-				console.log(resultsData)
-
 				if (currentRefs.length === 0) {
 					for (var i = 0, ilen = resultsData.length; i < ilen; i++) {
 						results.append(this.format(this.result_template,resultsData[i]));
@@ -409,10 +411,6 @@
 					// Get the Levenshtein steps needed to transform current into searchResult
 					var levenshtein = new Levenshtein(currentRefs, newRefs);
 					var steps = levenshtein.getSteps();
-
-					console.log('1', currentRefs, newRefs)
-					console.log('2', levenshtein, steps)
-
 					// Apply the operations
 					updateSearchList.call(this, listItems, searchResult, steps);
 				}
@@ -435,5 +433,4 @@
 			});
 		}
 	}
-
-})( jQuery );
+})(jQuery);

@@ -4,7 +4,7 @@
  * MIT Licensed
  * @license
  */
-(function( $ ) {
+(function($) {
 	/* Include the Lunr library */
 	var lunr=require('./lunr.js');
 
@@ -12,8 +12,7 @@
 	var Levenshtein=require('./levenshtein.js');
 
 	//This is the main plugin definition
-	$.fn.ghostHunter 	= function( options ) {
-
+	$.fn.ghostHunter 	= function(options) {
 		//Here we use jQuery's extend to set default values if they weren't set by the user
 		var opts 		= $.extend({}, $.fn.ghostHunter.defaults, options);
 		if(opts.results) {
@@ -28,7 +27,7 @@
 		resultsData			: false,
 		onPageLoad			: false,
 		onKeyUp				: false,
-		result_template 	: "<a id='gh-{{ref}}' class='gh-search-item' href='{{link}}'><p><h2>{{title}}</h2><h4>{{prettyPubDate}}</h4></p></a>",
+		result_template 	: "<a id='gh-{{ref}}' class='gh-search-item' href='{{link}}'><p><h2>{{title}}</h2><h4>{{pubDate}}</h4></p></a>",
 		info_template		: "<p>Number of posts found: {{amount}}</p>",
 		displaySearchInfo	: true,
 		zeroResultsInfo		: true,
@@ -50,7 +49,7 @@
 	};
 
 	var getSubpathKey = function(str) {
-		return str.replace(/^\//, "").replace(/\//g, "-")
+		return str.replace(/^\//, "").replace(/\//g, "-");
 	};
 
 	var lastTimeoutID = null;
@@ -67,7 +66,7 @@
 	};
 
 	var updateSearchList = function(listItems, apiData, steps) {
-		for (var i=0,ilen=steps.length;i<ilen;i++) {
+		for (var i = 0, ilen = steps.length; i < ilen; i++) {
 			var step = steps[i];
 			if (step[0] === "delete") {
 				listItems.eq(step[1]-1).remove();
@@ -82,7 +81,7 @@
 					if (step[1] === 0) {
 						pos = null;
 					} else {
-						pos = (step[1]-1)
+						pos = (step[1]-1);
 					}
 					listItems.eq(pos).after(html);
 				}
@@ -96,6 +95,7 @@
 		this.blogData = {};
 		this.latestPost = 0;
 		var url = (ghost_root_url || "/ghost/api/v2") + "/content/posts/?key=" + ghosthunter_key + "&limit=all";
+
 		var params = {
 			limit: "all",
 		};
@@ -106,10 +106,10 @@
 		}
 
 		if (this.includebodysearch) {
-			params.formats = ["plaintext"]
-			url += "&formats=plaintext"
+			params.formats = ["plaintext"];
+			url += "&formats=plaintext";
 		} else {
-			params.formats = [""]
+			params.formats = [""];
 		}
 
 		var me = this;
@@ -121,13 +121,13 @@
 				this.ref('id');
 				this.field('title');
 				this.field('description');
+				this.field('pubDate');
 				if (me.includetagssearch) {
 					this.field('tag');
 				}
 				if (me.includebodysearch) {
 					this.field('plaintext');
 				}
-				this.field('pubDate');
 				idxSrc.forEach(function(arrayItem) {
 					// console.log("start indexing an item: " + arrayItem.id);
 					// Track the latest value of updated_at,  to stash in localStorage
@@ -141,7 +141,7 @@
 						return v.name; // `tag` object has an `name` property which is the value of tag. If you also want other info, check API and get that property
 					})
 					if (arrayItem.meta_description == null) {
-						arrayItem.meta_description = ''
+						arrayItem.meta_description = '';
 					}
 					var category = tag_arr.join(", ");
 					if (category.length < 1) {
@@ -154,10 +154,10 @@
 						description	: String(arrayItem.custom_excerpt),
 						pubDate 	: String(arrayItem.published_at),
 					}
-					if  (me.includetagssearch) {
-						parsedData.tag = String(arrayItem.category);
+					if (me.includetagssearch) {
+						parsedData.tag = category;
 					}
-					if  (me.includebodysearch) {
+					if (me.includebodysearch) {
 						parsedData.plaintext=String(arrayItem.plaintext);
 					}
 					this.add(parsedData);
@@ -167,8 +167,15 @@
 						description: arrayItem.custom_excerpt,
 						pubDate: prettyDate(parsedData.pubDate),
 						link: localUrl,
-						tags: tag_arr
 					};
+
+					if (me.includetagssearch) {
+						me.blogData[arrayItem.id]['tags'] = tag_arr;
+					}
+					if  (me.includebodysearch) {
+						me.blogData[arrayItem.id]['plaintext'] = parsedData.plaintext;
+					}
+
 					// If there is a metadata "pre"-processor for the item, run it here.
 					if (me.item_preprocessor) {
 						Object.assign(me.blogData[arrayItem.id], me.item_preprocessor(arrayItem));
@@ -192,35 +199,34 @@
 	}
 
 	var pluginMethods	= {
-
 		isInit			: false,
 
-		init			: function( target , opts ){
+		init			: function(target , opts) {
 			var that = this;
 			that.target = target;
 			Object.assign(this, opts);
-			if ( opts.onPageLoad ) {
-				function miam () {
+			if (opts.onPageLoad) {
+				function miam() {
 					that.loadAPI();
 				}
 				window.setTimeout(miam, 1);
 			} else {
-				target.focus(function(){
+				target.focus(function() {
 					that.loadAPI();
 				});
 			}
 
-			target.closest("form").submit(function(e){
+			target.closest("form").submit(function(e) {
 				e.preventDefault();
 				that.find(target.val());
 			});
 
-			if( opts.onKeyUp ) {
+			if (opts.onKeyUp) {
 				// In search-as-you-type mode, the Enter key is meaningless,
 				// so we disable it in the search field. If enabled, some browsers
 				// will save data to history (even when autocomplete="false"), which
 				// is an intrusive headache, particularly on mobile.
-				target.keydown(function(event){
+				target.keydown(function(event) {
 					if (event.which === 13) {
 						return false;
 					}
@@ -233,9 +239,9 @@
 
 		},
 
-		loadAPI			: function(){
+		loadAPI			: function() {
 			// console.log('ghostHunter: loadAPI');
-			if(!this.isInit) {
+			if (!this.isInit) {
 				// console.log('ghostHunter: this.isInit is true');
 				if (this.indexing_start) {
 					this.indexing_start();
@@ -253,7 +259,7 @@
 						this.blogData = JSON.parse(this.blogData);
 						this.isInit = true;
 					}
-				} catch (e){
+				} catch (e) {
 					console.warn("ghostHunter: retrieve from localStorage failed: " + e);
 				}
 			}
@@ -271,7 +277,7 @@
 					"updated_at:>\'" + this.latestPost.replace(/\..*/, "").replace(/T/, " ") + "\'";
 
 				var me = this;
-				$.get(url).done(function(data){
+				$.get(url).done(function(data) {
 					if (data.posts.length > 0) {
 						grabAndIndex.call(me);
 					} else {
@@ -288,22 +294,22 @@
 		},
 
 
-		find 		 	: function(value){
+		find 		 	: function(value) {
 			clearTimeout(lastTimeoutID);
 			if (!value) {
 				value = "";
-			};
+			}
 			value = value.toLowerCase();
 			lastTimeoutID = setTimeout(function() {
 				// Query strategy is lifted from comments on a lunr.js issue: https://github.com/olivernn/lunr.js/issues/256
 				var thingsFound = [];
 				// The query interface expects single terms, so we split.
 				var valueSplit = value.split(/\s+/);
-				for (var i=0,ilen=valueSplit.length;i<ilen;i++) {
+				for (var i = 0, ilen = valueSplit.length; i < ilen; i++) {
 					// Fetch a list of matches for each term.
 					var v = valueSplit[i];
 					if (!v) continue;
-					thingsFound.push(this.index.query(function (q) {
+					thingsFound.push(this.index.query(function(q) {
 						// For an explanation of lunr indexing options, see the lunr.js
 						// documentation at https://lunrjs.com/docs/lunr.Query.html#~Clause
 
@@ -337,15 +343,15 @@
 					// what we would expect.
 					var searchResult = thingsFound[0];
 					thingsFound = thingsFound.slice(1);
-					for (var i=searchResult.length-1;i>-1;i--) {
+					for (var i = searchResult.length - 1; i > -1; i--) {
 						var ref = searchResult[i].ref;
-						for (j=0,jlen=thingsFound.length;j<jlen;j++) {
+						for (j = 0, jlen = thingsFound.length; j < jlen; j++) {
 							var otherRefs = {}
-							for (var k=0,klen=thingsFound[j].length;k<klen;k++) {
+							for (var k = 0, klen = thingsFound[j].length; k < klen; k++) {
 								otherRefs[thingsFound[j][k].ref] = true;
 							}
 							if (!otherRefs[ref]) {
-								searchResult = searchResult.slice(0, i).concat(searchResult.slice(i+1));
+								searchResult = searchResult.slice(0, i).concat(searchResult.slice(i + 1));
 								break;
 							}
 						}
@@ -375,7 +381,7 @@
 
 				if(this.before) {
 					this.before();
-				};
+				}
 
 				// Get the blogData for the full set, for onComplete
 				for (var i = 0; i < searchResult.length; i++) {
@@ -390,20 +396,19 @@
 				}
 				// Get an array of IDs present in current results
 				var listItems = $('.gh-search-item');
-				var currentRefs = listItems
-					.map(function(){
-						return this.id.slice(3);
-					}).get();
+				var currentRefs = listItems.map(function() {
+					return this.id.slice(3);
+				}).get();
 				if (currentRefs.length === 0) {
-					for (var i=0,ilen=resultsData.length;i<ilen;i++) {
+					for (var i = 0, ilen = resultsData.length; i < ilen; i++) {
 						results.append(this.format(this.result_template,resultsData[i]));
 					}
 					settleIDs();
 				} else {
 					// Get an array of IDs present in searchResult
 					var newRefs = [];
-					for (var i=0,ilen=searchResult.length;i<ilen;i++) {
-						newRefs.push(searchResult[i].ref)
+					for (var i = 0, ilen = searchResult.length; i < ilen; i++) {
+						newRefs.push(searchResult[i].ref);
 					}
 					// Get the Levenshtein steps needed to transform current into searchResult
 					var levenshtein = new Levenshtein(currentRefs, newRefs);
@@ -430,4 +435,4 @@
 			});
 		}
 	}
-})( jQuery );
+})(jQuery);
