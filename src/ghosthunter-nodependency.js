@@ -35,6 +35,7 @@
 		onComplete			: false,
 		filterfields		: false,
 		subpath				: "",
+		clear_cache			: false,
 		item_preprocessor	: false,
 		indexing_start		: false,
 		indexing_end		: false,
@@ -234,9 +235,12 @@
 				target.keyup(function(event) {
 					that.find(target.val());
 				});
-
 			}
 
+			if (opts.clear_cache) {
+				// remove old localStorage data
+				this.clearCache();
+			}
 		},
 
 		loadAPI			: function() {
@@ -433,6 +437,25 @@
 				var r = d[b];
 				return typeof r === 'string' || typeof r === 'number' ? r : a;
 			});
+		},
+
+		clearCache		: function() {
+			try {
+				var subpathKey = getSubpathKey(this.subpath);
+				var len = localStorage.length;
+				var keys = [];
+				for (var i = 0; i < len; i++) {
+					keys.push(localStorage.key(i));
+				}
+				keys.forEach(function(key) {
+					var regexp = new RegExp('^ghost_(.*[^' + subpathKey + ']|)_(blogData|lunrIndex|latestPost)$', 'g');
+					if (regexp.test(key)) {
+						localStorage.removeItem(key);
+					}
+				});
+			} catch (e) {
+				console.warn("ghostHunter: remove localStorage failed: " + e);
+			}
 		}
 	}
 })(jQuery);

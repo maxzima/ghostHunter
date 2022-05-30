@@ -22,9 +22,8 @@ module.exports = function(grunt) {
                 dest: "dist/jquery.ghosthunter-use-require.js",
                 options: {
                     process: function(content, path) {
-                        content = content.replace(/\/\*\s+lunr\s+\*\//i, 'var lunr = require("lunr")');
-                        var levenshtein = grunt.file.read('./src/levenshtein.js');
-                        content = content.replace(/\/\*\s+levenshtein\s+\*\//i, levenshtein);
+                        content = content.replace(/\/\*\s+lunr\s+\*\//i, 'var lunr = require("./../src/lunr");');
+                        content = content.replace(/\/\*\s+levenshtein\s+\*\//i, 'var Levenshtein = require("./../src/levenshtein");');
                         return grunt.template.process(content)
                     }
                 }
