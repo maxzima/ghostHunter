@@ -40,7 +40,8 @@
 		indexing_start		: false,
 		indexing_end		: false,
 		includebodysearch	: false,
-		includetagssearch	: false
+		includetagssearch	: false,
+		includepubdatesearch: true,
 	};
 
 	var prettyDate = function(date) {
@@ -122,7 +123,9 @@
 				this.ref('id');
 				this.field('title');
 				this.field('description');
-				this.field('pubDate');
+				if (me.includepubdatesearch) {
+					this.field('pubDate');
+				}
 				if (me.includetagssearch) {
 					this.field('tag');
 				}
@@ -162,12 +165,11 @@
 						parsedData.plaintext=String(arrayItem.plaintext);
 					}
 					this.add(parsedData);
-					var localUrl = me.subpath + arrayItem.url;
 					me.blogData[arrayItem.id] = {
 						title: arrayItem.title,
 						description: arrayItem.custom_excerpt,
 						pubDate: prettyDate(parsedData.pubDate),
-						link: localUrl,
+						link: arrayItem.url,
 					};
 
 					if (me.includetagssearch) {
