@@ -60,8 +60,10 @@
 	var settleIDs = function() {
 		$('.gh-search-item').each(function() {
 			var oldAttr = this.getAttribute('id');
-			var newAttr = oldAttr.replace(/^new-/, "");
-			this.setAttribute('id', newAttr);
+			if (oldAttr) {
+				var newAttr = oldAttr.replace(/^new-/, "");
+				this.setAttribute('id', newAttr);
+			}
 		});
 	};
 
